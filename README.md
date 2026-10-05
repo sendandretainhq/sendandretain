@@ -6,8 +6,8 @@ Email automation your agent runs — sending included, unlimited contacts.
 
 - **Docs** — https://sendandretain.com/docs
 - **MCP endpoint** — `https://sendandretain.com/api/mcp` (OAuth 2.1, no token to mint)
-- **Plugin** — [`sendandretain-plugin`](https://github.com/sendretain/sendandretain-plugin) for Claude Code, Codex, Cursor, VS Code and other agent-plugin clients
-- **SDKs** — [`sendandretain-node`](https://github.com/sendretain/sendandretain-node) · [`sendandretain-py`](https://github.com/sendretain/sendandretain-py)
+- **Plugin** — [`sendandretain-plugin`](https://github.com/sendandretainhq/sendandretain-plugin) for Claude Code, Codex, Cursor, VS Code and other agent-plugin clients
+- **SDKs** — [`sendandretain-node`](https://github.com/sendandretainhq/sendandretain-node) · [`sendandretain-py`](https://github.com/sendandretainhq/sendandretain-py)
 
 ## Quick start
 
