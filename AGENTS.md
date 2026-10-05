@@ -2,7 +2,7 @@
 
 # Send & Retain — for agents
 
-Email automation your agent runs — on your own Resend or SendGrid key.
+Email automation your agent runs — sending included, unlimited contacts.
 
 This repo is the machine-readable surface: an OpenAPI spec, a catalogue of
 every MCP tool, and the plugin. The product itself is closed-source and runs
