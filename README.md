@@ -1,6 +1,6 @@
 # Send & Retain
 
-Lifecycle email your agent runs — on your own Resend or SendGrid key.
+Email automation your agent runs — sending included, unlimited contacts.
 
 **Using this from an AI agent? Read [AGENTS.md](./AGENTS.md).**
 
@@ -18,12 +18,26 @@ claude mcp add --transport http sendandretain https://sendandretain.com/api/mcp
 Then authorize in the browser when prompted. That is the whole setup — Send & Retain
 uses OAuth, so there is no API token to copy around.
 
+From your own application, use an SDK with a key from **Settings → API keys**:
+
+```ts
+import { SendAndRetain } from "@sendandretain/sdk"; // npm install @sendandretain/sdk
+
+const { data, error } = await new SendAndRetain().emails.send({ to: "jane@acme.com", template: "welcome" });
+```
+
+```python
+from sendandretain import SendAndRetain  # pip install sendandretain
+
+email = SendAndRetain().emails.send(to="jane@acme.com", template="welcome")
+```
+
 ## What is in this repo
 
 | File | |
 | --- | --- |
-| [`tools.json`](./tools.json) | All 83 MCP tools with JSON Schema |
-| [`openapi.json`](./openapi.json) | REST API contract |
+| [`tools.json`](./tools.json) | Every MCP tool with its JSON Schema (`toolCount` is the live number) |
+| [`openapi.json`](./openapi.json) | REST API contract (OpenAPI 3.1, semver in `info.version`), including the payload of every webhook event |
 | [`AGENTS.md`](./AGENTS.md) | Orientation for coding agents |
 
 The product is closed-source; this repo publishes its interface.
