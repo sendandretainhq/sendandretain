@@ -4,12 +4,12 @@
   "mcpUrl": "https://sendandretain.com/api/mcp",
   "toolPrefix": "email_",
   "authorization": "OAuth 2.1 — no token to mint; the client prompts in a browser.",
-  "toolCount": 101,
+  "toolCount": 92,
   "tools": [
     {
       "name": "email_add_automation_steps",
       "title": "addAutomationSteps",
-      "description": "Append steps to the END of an automation or one of a branch's lanes (allowed while active — in-flight runs are unaffected and will flow into the new steps). This is how 100-step evergreen sequences are authored incrementally. Pass parentStepId + laneKey (e.g. 'yes'/'no', a multi arm key, or 'else') to target a lane; omit both for the top level. To insert BETWEEN existing steps, pause first and use afterPosition (interpreted within the target lane).",
+      "description": "Append steps to the END of an automation or one of a branch's lanes (allowed while active — in-flight runs are unaffected and will continue into the new steps). This is how 100-step evergreen automations are authored incrementally. Pass parentStepId + laneKey (e.g. 'yes'/'no', a multi arm key, or 'else') to target a lane; omit both for the top level. To insert BETWEEN existing steps, pause first and use afterPosition (interpreted within the target lane).",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -644,7 +644,7 @@
     {
       "name": "email_add_suppression",
       "title": "addSuppression",
-      "description": "Manually suppress an address. A `manual` suppression (default) blocks ALL sends to it in this project; `unsubscribe` blocks lifecycle mail only (transactional receipts/resets still deliver).",
+      "description": "Manually suppress an address. A `manual` suppression (default) blocks ALL sends to it in this project; `unsubscribe` blocks marketing email (category `lifecycle`) only (transactional receipts/resets still deliver).",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -764,7 +764,7 @@
     {
       "name": "email_backfill_missed_enrollments",
       "title": "backfillMissedEnrollments",
-      "description": "Enroll the contacts who qualified while an automation was PAUSED. Events keep being recorded when a flow is off, so the people it missed are recoverable — this is the catch-up after pausing to fix a template or filter. ALWAYS dryRun first and show the human the counts: contacts whose exit event arrived after their trigger are skipped (they resolved during the pause — enrolling them would chase a customer who already converted), and the automation's own re-enrollment/cooldown/suppression guards still apply. `since` is required and should be the moment it was paused; there is no 'everything', because replaying an hour-long chase days late is noise. Resume the automation before running for real.",
+      "description": "Enroll the contacts who qualified while an automation was PAUSED. Events keep being recorded when an automation is off, so the people it missed are recoverable — this is the catch-up after pausing to fix a template or filter. ALWAYS dryRun first and show the human the counts: contacts whose exit event arrived after their trigger are skipped (they resolved during the pause — enrolling them would chase a customer who already converted), and the automation's own re-enrollment/cooldown/suppression guards still apply. `since` is required and should be the moment it was paused; there is no 'everything', because replaying an hour-long chase days late is noise. Resume the automation before running for real.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -806,7 +806,7 @@
     {
       "name": "email_bootstrap_company",
       "title": "bootstrapCompany",
-      "description": "Set up a company's email in one call: materialize the starter templates each pack needs, PUBLISH the versions it just creates (compile-checked, battle-tested starters), and create the sequence automations — ALWAYS PAUSED. Nothing sends: enabling each sequence stays a separate human-confirmed setAutomationStatus. Idempotent: re-running skips templates and packs already installed, so you can add a pack later without duplicates. Confirm the archetype with the human (listSequencePacks) and set the brand first (updateBrand) for on-brand emails.",
+      "description": "Set up a company's email in one call: materialize the starter templates each pack needs, PUBLISH the versions it just creates (compile-checked, battle-tested starters), and create the packs' automations — ALWAYS PAUSED. Nothing sends: enabling each automation stays a separate human-confirmed setAutomationStatus. Idempotent: re-running skips templates and packs already installed, so you can add a pack later without duplicates. Confirm the archetype with the human (listSequencePacks) and set the brand first (updateBrand) for on-brand emails.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -882,108 +882,9 @@
       }
     },
     {
-      "name": "email_connect_migration_source",
-      "title": "connectMigrationSource",
-      "description": "Offer the operator a secure card to connect the email platform they are MOVING OFF (Klaviyo, Mailchimp, ActiveCampaign, Brevo, HubSpot), so we can read their existing flows instead of asking them to describe them. Call this the moment they name their current tool. It does NOT take an API key — you never handle one; the card collects it and posts it straight to the server. Say what the platform can actually give you before they paste anything, because two of these five cannot hand over flows and they should know that first.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "platform": {
-            "type": "string",
-            "enum": [
-              "klaviyo",
-              "mailchimp",
-              "activecampaign",
-              "brevo",
-              "hubspot"
-            ],
-            "description": "The platform they are leaving, as they named it."
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "platform"
-        ]
-      }
-    },
-    {
-      "name": "email_connect_provider",
-      "title": "connectProvider",
-      "description": "Connect a sending provider. `sendandretain` is Send & Retain's own sending: no API key, no settings page — this connects it immediately and is what a new company should start on. `resend`/`sendgrid` return the settings-page URL where the HUMAN pastes their key; keys never travel through chat or MCP. Both can be connected at once: traffic splits between them and a failing provider fails over to the other. Re-check with getConnectionStatus after.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "provider": {
-            "default": "sendandretain",
-            "type": "string",
-            "enum": [
-              "sendandretain",
-              "resend",
-              "sendgrid"
-            ]
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        }
-      }
-    },
-    {
-      "name": "email_create_api_key",
-      "title": "createApiKey",
-      "description": "Mint an API key for the company's app (POST /api/v1/emails). The secret is returned ONCE — relay it to the human immediately. Pick a role: 'app' (sends + manages content — what an app needs, the default), 'content' (manages templates and contacts but can NEVER send), 'read' (view only), 'admin' (workspace settings, can send). Requires an 'admin' credential.",
-      "destructive": true,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "role": {
-            "default": "app",
-            "description": "What the key may do. Defaults to 'app' — the credential an application authenticates sends with. Use 'content' only when the key must never deliver mail.",
-            "type": "string",
-            "enum": [
-              "app",
-              "content",
-              "read",
-              "admin"
-            ]
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      }
-    },
-    {
       "name": "email_create_automation",
       "title": "createAutomation",
-      "description": "Create an event-triggered automation (welcome flow, weekly engagement sequence, win-back). ALWAYS created paused — test with emitContactEvent, then enable via setAutomationStatus on the human's explicit OK. Attribute-routing: create N automations on the same trigger with different filters + priorities; exclusive=true means first-match-only. triggerFilter accepts a flat array (all AND) OR a nested {op:'and'|'or', conditions:[...]} group for OR logic. SEGMENT-ENTRY trigger: set triggerEvent to \"$segment_entered\" and triggerFilter to [{path:'event.properties.segmentId', op:'eq', value:'<segmentId>'}] to enroll a contact the moment their attributes make them newly match that segment (still throttled/suppressed — no blast). SCHEDULED trigger: set triggerEvent to \"$scheduled\" plus triggerSchedule ('daily'|'weekly'|'monthly') and a triggerFilter — a sweep re-evaluates the filter across the audience on that cadence and enrolls whoever matches. $segment_entered is EDGE-triggered (fires on a transition, so it never reaches contacts already in the state); $scheduled is LEVEL-triggered, which is what list hygiene needs. A $scheduled automation REQUIRES a filter and should set allowReenrollment with a cooldown. ENGAGEMENT filters (usable in triggerFilter and branch filters): contact.engagement.emailsSinceEngaged, .daysSinceEngaged, .emailsReceived, .openCount, .clickCount, .openRate, .clickRate (percent), .lastOpenedAt, .lastClickedAt, plus contact.subscriptionStatus. Timestamps compare with within_days / older_than_days (a NUMBER OF DAYS); both are FALSE when the timestamp is null, so use daysSinceEngaged for the never-engaged case — it falls back to days since the first email, which is what stops a sunset rule catching new subscribers. STEP TYPES: 'send' (default — templateSlug), 'delay' (a standalone wait — {delaySeconds} is the pause before the next step; stack them, put one at the end, reorder like any step), 'wait_for_event' (pause until a contact_event arrives or timeoutSeconds elapses), 'branch' (see below), 'set_attribute' (merge {attributes} and/or {addTags}/{removeTags} — tags ARE segment membership), 'webhook' (POST the payload to a public {url}), 'unsubscribe' (opt the contact out of ALL lifecycle mail — transactional still delivers; it ENDS the run as `unsubscribed`, so no 'exit' step is needed after it, and it is a logged no-op when the project's open/click tracking isn't confirmed on), or 'exit' (end the run here, optionally labeled). Prefer a 'delay' step for waits; a delaySeconds on any other step type is auto-split into a delay step before it. BRANCHES own lanes of child steps that CONVERGE after the branch: yes/no = {filter, yes:[steps...], no:[steps...]} (an empty lane skips straight past); multi = {branches:[{key, label?, filter, steps:[...]}], elseSteps:[...]} — first matching arm wins, everyone else takes the else lane. End a lane early with an 'exit' step; otherwise its contacts continue after the branch. Lanes nest at most two levels. The legacy gate shape {filter, ifMatch, ifNoMatch} ('continue'/'exit') still works.",
+      "description": "Create an event-triggered automation (welcome, weekly engagement, win-back). ALWAYS created paused — test with emitContactEvent, then enable via setAutomationStatus on the human's explicit OK. Attribute-routing: create N automations on the same trigger with different filters + priorities; exclusive=true means first-match-only. triggerFilter accepts a flat array (all AND) OR a nested {op:'and'|'or', conditions:[...]} group for OR logic. SEGMENT-ENTRY trigger: set triggerEvent to \"$segment_entered\" and triggerFilter to [{path:'event.properties.segmentId', op:'eq', value:'<segmentId>'}] to enroll a contact the moment their attributes make them newly match that segment (still throttled/suppressed — no blast). SCHEDULED trigger: set triggerEvent to \"$scheduled\" plus triggerSchedule ('daily'|'weekly'|'monthly') and a triggerFilter — a sweep re-evaluates the filter across the audience on that cadence and enrolls whoever matches. $segment_entered is EDGE-triggered (fires on a transition, so it never reaches contacts already in the state); $scheduled is LEVEL-triggered, which is what list hygiene needs. A $scheduled automation REQUIRES a filter and should set allowReenrollment with a cooldown. ENGAGEMENT filters (usable in triggerFilter and branch filters): contact.engagement.emailsSinceEngaged, .daysSinceEngaged, .emailsReceived, .openCount, .clickCount, .openRate, .clickRate (percent), .lastOpenedAt, .lastClickedAt, plus contact.subscriptionStatus. Timestamps compare with within_days / older_than_days (a NUMBER OF DAYS); both are FALSE when the timestamp is null, so use daysSinceEngaged for the never-engaged case — it falls back to days since the first email, which is what stops a sunset rule catching new subscribers. STEP TYPES: 'send' (default — templateSlug), 'delay' (a standalone wait — {delaySeconds} is the pause before the next step; stack them, put one at the end, reorder like any step), 'wait_for_event' (pause until a contact_event arrives or timeoutSeconds elapses), 'branch' (see below), 'set_attribute' (merge {attributes} and/or {addTags}/{removeTags} — tags ARE segment membership), 'webhook' (POST the payload to a public {url}), 'unsubscribe' (opt the contact out of ALL marketing email — transactional still delivers; it ENDS the run as `unsubscribed`, so no 'exit' step is needed after it, and it is a logged no-op when the project's open/click tracking isn't confirmed on), or 'exit' (end the run here, optionally labeled). Prefer a 'delay' step for waits; a delaySeconds on any other step type is auto-split into a delay step before it. BRANCHES own lanes of child steps that CONVERGE after the branch: yes/no = {filter, yes:[steps...], no:[steps...]} (an empty lane skips straight past); multi = {branches:[{key, label?, filter, steps:[...]}], elseSteps:[...]} — first matching arm wins, everyone else takes the else lane. End a lane early with an 'exit' step; otherwise its contacts continue after the branch. Lanes nest at most two levels. The legacy gate shape {filter, ifMatch, ifNoMatch} ('continue'/'exit') still works.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -1857,7 +1758,7 @@
     {
       "name": "email_create_template",
       "title": "createTemplate",
-      "description": "Create a template (react.email TSX, imports limited to react + @react-email/components, one default export) with a draft v1. Category drives unsubscribe behavior: 'transactional' (receipts, resets — always delivered) vs 'lifecycle' (gets one-click unsubscribe headers). Use the COMPANY's brand from the project brief. For the 8 standard emails, pass `starter` to begin from a brand-filled baseline instead of authoring from scratch — then rewrite the copy in the company's voice. Then renderTemplate to iterate.",
+      "description": "Create a template (react.email TSX, imports limited to react + @react-email/components, one default export) with a draft v1. Category decides who an unsubscribe blocks: 'transactional' (receipts, resets — still delivered to unsubscribed contacts) vs 'lifecycle' (marketing email — blocked once a contact unsubscribes). Every send carries one-click unsubscribe headers either way. Use the COMPANY's brand from the project brief. For the 8 standard emails, pass `starter` to begin from a brand-filled baseline instead of authoring from scratch — then rewrite the copy in the company's voice. Then renderTemplate to iterate.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -2040,6 +1941,38 @@
       }
     },
     {
+      "name": "email_delete_contact",
+      "title": "deleteContact",
+      "description": "Permanently delete one contact (a data-deletion request). Removes the profile, attributes and tags; the message log keeps its rows. Does NOT suppress the address — a later event or send recreates the contact, so use addSuppression as well when the person asked not to be emailed.",
+      "destructive": true,
+      "acceptsProjectId": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Must be true — confirms the human explicitly decided this."
+          },
+          "projectId": {
+            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "email",
+          "confirm"
+        ]
+      }
+    },
+    {
       "name": "email_delete_domain",
       "title": "deleteDomain",
       "description": "Delete a sending domain: removes it from the project (its senders go with it) AND from the provider account unless another project still uses it. Sends from it fail afterwards. Refused while the project default sender is on it and other senders exist elsewhere.",
@@ -2197,42 +2130,9 @@
       }
     },
     {
-      "name": "email_disconnect_migration_source",
-      "title": "disconnectMigrationSource",
-      "description": "Delete the stored key for a connected source. Offer this as soon as the migration is done — a credential on a system we no longer read is a standing grant nobody is watching. The pulled flows SURVIVE and stay readable; only our access goes away.",
-      "destructive": true,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "sourceId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "From listSourceFlows."
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Must be true — confirms the human explicitly decided this."
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "sourceId",
-          "confirm"
-        ]
-      }
-    },
-    {
       "name": "email_duplicate_automation",
       "title": "duplicateAutomation",
-      "description": "Clone an automation and all its steps into a new PAUSED automation (delays, prop overrides, A/B variants, send windows preserved). Useful to fork a proven sequence for a variant or a new segment.",
+      "description": "Clone an automation and all its steps into a new PAUSED automation (delays, prop overrides, A/B variants, send windows preserved). Useful to fork a proven automation for a variant or a new segment.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -2292,33 +2192,6 @@
         "required": [
           "email",
           "name"
-        ]
-      }
-    },
-    {
-      "name": "email_fetch_url",
-      "title": "fetchUrl",
-      "description": "Fetch a URL the operator pasted into chat and return its readable text. Use when the operator references a webpage you don't already know. Strips HTML and truncates to ~50KB. Only http/https URLs.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "maxLength": 2048,
-            "format": "uri"
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "url"
         ]
       }
     },
@@ -2401,7 +2274,7 @@
     {
       "name": "email_get_connection_status",
       "title": "getConnectionStatus",
-      "description": "Sending-setup status for the scoped company: provider connection (masked key), domains with per-record DNS state, senders, webhook registration, kill switch. Call before any setup step.",
+      "description": "Sending-setup status for the scoped company: provider connection (masked key), domains with per-record DNS state, senders, webhook registration, kill switch, and `settingsUrl` — the sending settings page where the operator connects a provider or the platform they are migrating off, adds domains and senders, and mints API keys. Call before any setup step.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -2552,25 +2425,6 @@
       }
     },
     {
-      "name": "email_get_onboarding_answers",
-      "title": "getOnboardingAnswers",
-      "description": "Read back what onboarding has already learned about this company, and what is still missing. Use it when picking up a conversation you did not start.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        }
-      }
-    },
-    {
       "name": "email_get_onboarding_steps",
       "title": "getOnboardingSteps",
       "description": "The guided setup's ten steps for the scoped company, each with its address (1.1–3.5), title, phase and whether it is done — the same list the operator sees in the dashboard. Call it before describing progress or picking what to do next.",
@@ -2609,9 +2463,9 @@
       }
     },
     {
-      "name": "email_get_queue_health",
-      "title": "getQueueHealth",
-      "description": "Background-job queue health for the whole workspace: pending jobs due now, age of the oldest pending job, in-flight count, and dead-letter count. A high or growing pendingDueNow / oldest age means the worker is wedged (e.g. it can't reach the DB) and scheduled/automation sends are backing up. Org-scoped.",
+      "name": "email_get_project_settings",
+      "title": "getProjectSettings",
+      "description": "Read the sending guardrails: kill switch (sendsPaused), daily send cap, UTM tagging, default locale, and how many emails went out today — read this before changing any of them.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -2628,22 +2482,15 @@
       }
     },
     {
-      "name": "email_get_site_traffic",
-      "title": "getSiteTraffic",
-      "description": "Website traffic from the company's connected PostHog project: visitors, sessions and pageviews site-wide, the slice that came from our emails, and the pages email traffic lands on. Use this to answer 'is anyone actually visiting the site' and 'where does email send people'. Returns configured:false when PostHog isn't connected — tell the operator to set it up in Settings → Analytics rather than reporting an error.",
+      "name": "email_get_queue_health",
+      "title": "getQueueHealth",
+      "description": "Background-job queue health for the whole workspace: pending jobs due now, age of the oldest pending job, in-flight count, and dead-letter count. A high or growing pendingDueNow / oldest age means the worker is wedged (e.g. it can't reach the DB) and scheduled/automation sends are backing up. Org-scoped.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "days": {
-            "default": 30,
-            "description": "Lookback window in days.",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 90
-          },
           "projectId": {
             "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
             "type": "string",
@@ -2713,30 +2560,6 @@
       }
     },
     {
-      "name": "email_get_verification_status",
-      "title": "getVerificationStatus",
-      "description": "Address-verification status for the workspace: whether verification is running, credits remaining in the shared pool, and counts by verdict. Pass `email` for one address's cached verdict — useful when a send was refused with code `invalid_recipient`. Costs no credits. Verification is org-wide (one account, one credit pool), not per company.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        }
-      }
-    },
-    {
       "name": "email_import_contacts",
       "title": "importContacts",
       "description": "Bulk-import contacts when migrating a company in (CSV rows parsed to entries). Max 500 per call; repeat for more. Attributes merge on existing contacts.",
@@ -2799,7 +2622,7 @@
     {
       "name": "email_import_suppressions",
       "title": "importSuppressions",
-      "description": "Bulk-import suppressions when migrating a company in (from the old provider's suppression export or a CSV). Run BEFORE the first real send — re-mailing known bounces/complaints torches a fresh domain. Import a source's bounces/complaints as `manual` with the source's own label in `note`: it blocks exactly the same sends but stays reversible. Max 1000 per call; repeat for more.",
+      "description": "Bulk-import suppressions when migrating a company in (from the old provider's suppression export or a CSV). Run BEFORE the first real send — re-mailing known bounces/complaints damages a new domain's reputation. Each imported address stops receiving mail from this project at once, an existing `unsubscribe` row is raised to `manual`, and any automation run in progress for the address ends; removing the suppression later does not restart those runs. Import a source's bounces/complaints as `manual` with the source's own label in `note` (`manual` blocks the same sends, and unlike a complaint it can be removed). Max 1000 per call; repeat for more.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -2847,25 +2670,6 @@
         "required": [
           "entries"
         ]
-      }
-    },
-    {
-      "name": "email_list_api_keys",
-      "title": "listApiKeys",
-      "description": "List the company's send-API keys (masked).",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        }
       }
     },
     {
@@ -3058,7 +2862,7 @@
     {
       "name": "email_list_sequence_packs",
       "title": "listSequencePacks",
-      "description": "Catalog of business archetypes (saas / ecommerce / newsletter-media / marketplace) and the sequence packs each installs. Call this first to confirm the archetype and pack selection with the human before bootstrapCompany.",
+      "description": "Catalog of business archetypes (saas / ecommerce / newsletter-media / marketplace) and the packs each installs (a pack is a starter set of paused automations). Call this first to confirm the archetype and pack selection with the human before bootstrapCompany.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -3077,7 +2881,7 @@
     {
       "name": "email_list_source_flows",
       "title": "listSourceFlows",
-      "description": "List the flows we pulled from the platform the company is leaving. Call this BEFORE proposing a lifecycle programme for any company that has connected a source — designing from scratch over the top of eleven existing flows is the failure this exists to prevent. Returns names, status, trigger and step counts; use getSourceFlow for the steps of one.",
+      "description": "List the flows we pulled from the platform the company is leaving. Call this BEFORE proposing an email automation programme for any company that has connected a source — designing from scratch over the top of eleven existing flows is the failure this exists to prevent. Returns names, status, trigger and step counts; use getSourceFlow for the steps of one.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -3207,6 +3011,10 @@
             "minimum": 1,
             "maximum": 100
           },
+          "cursor": {
+            "description": "`next_cursor` from the previous page.",
+            "type": "string"
+          },
           "projectId": {
             "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
             "type": "string",
@@ -3326,7 +3134,7 @@
     {
       "name": "email_preview_automation",
       "title": "previewAutomation",
-      "description": "Dry-run the sequence: render every send step with a sample contact (its example props ⊕ any props you pass) and return subject + text (+ html on request), plus the humanized timeline. No side effects, nothing sent — this is how you show a human what a sequence will actually look like before enabling it.",
+      "description": "Dry-run the automation: render every send step with a sample contact (its example props ⊕ any props you pass) and return subject + text (+ html on request) and a 15-minute previewUrl per email (anyone with the link can view it), plus the humanized timeline. No side effects, nothing sent — this is how you show a human what an automation will actually look like before enabling it.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -3429,90 +3237,6 @@
         "required": [
           "slug"
         ]
-      }
-    },
-    {
-      "name": "email_read_attachment",
-      "title": "readAttachment",
-      "description": "Read the text content of a file the operator attached to the current chat thread. Use for CSV, TXT, Markdown, or JSON attachments — image attachments are passed to you as vision input and don't need this tool. Returns up to 50KB of decoded text. Resolve `messageId` from the file part's parent UIMessage in the conversation.",
-      "destructive": false,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "messageId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "description": "The id of the UIMessage that holds the attachment."
-          },
-          "attachmentIndex": {
-            "default": 0,
-            "description": "Zero-based index into the message's file parts (in order of appearance). Defaults to the first file.",
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 49
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "messageId"
-        ]
-      }
-    },
-    {
-      "name": "email_record_onboarding_answers",
-      "title": "recordOnboardingAnswers",
-      "description": "Record what the operator told you during onboarding, in their own words. Call it the turn you learn something rather than batching to the end — an abandoned conversation resumes from what was recorded. Merges: passing one field never erases the others. Also the way you record a SKIP: pass `deferred` with any slot they declined to answer now, in the same call as whatever they did answer. Returns what is still missing. Note what is NOT here: what the company sells and what its product does are read off their website into the Canon, so read those rather than asking.",
-      "destructive": true,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "audience": {
-            "description": "What they send email with TODAY — the tool by name (Klaviyo, Mailchimp, ActiveCampaign, Brevo, HubSpot, or another), or nothing yet. Record it and move on; never ask for another product's API key.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          },
-          "volume": {
-            "description": "Roughly how much they expect to send a day, as a band: up to 1,000 / 1,000-5,000 / 5,000-10,000 / more than 10,000.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "priority": {
-            "description": "What hurts most about their email today — any of deliverability, design, copywriting and tracking, joined with ' · '. Several is normal; do not make them pick one.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          },
-          "deferred": {
-            "description": "Slots the operator chose to answer later — from the ask card's Skip, or from them saying so in prose. Stop asking for these; they stay listed as missing and can be filled any time.",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "audience",
-                "volume",
-                "priority"
-              ]
-            }
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        }
       }
     },
     {
@@ -3656,7 +3380,7 @@
     {
       "name": "email_render_template",
       "title": "renderTemplate",
-      "description": "Compile + render a template version with example (or given) props. THE authoring inner loop — returns html/text/subject on success, verbatim compile/render errors on failure. No side effects, nothing is sent.",
+      "description": "Compile + render a template version with example (or given) props. THE authoring inner loop — returns html/text/subject and a 15-minute previewUrl on success (anyone with the link can view it). Open previewUrl in the client browser panel when available. Returns verbatim compile/render errors on failure. No side effects, nothing is sent.",
       "destructive": false,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -3688,6 +3412,35 @@
         },
         "required": [
           "slug"
+        ]
+      }
+    },
+    {
+      "name": "email_replay_webhook_delivery",
+      "title": "replayWebhookDelivery",
+      "description": "Re-send one past delivery to its endpoint — after the customer fixed whatever made it fail. Same payload and same `webhook-id`, so a receiver that already processed it dedupes it away. Refused while the delivery is still pending or in flight. Ids come from listWebhookDeliveries.",
+      "destructive": true,
+      "acceptsProjectId": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deliveryId": {
+            "type": "string"
+          },
+          "projectId": {
+            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "id",
+          "deliveryId"
         ]
       }
     },
@@ -3747,33 +3500,6 @@
         },
         "required": [
           "slug"
-        ]
-      }
-    },
-    {
-      "name": "email_revoke_api_key",
-      "title": "revokeApiKey",
-      "description": "Revoke a send-API key. Immediate; the company's app will start getting 401s. Requires an 'admin' credential.",
-      "destructive": true,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "keyId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "keyId"
         ]
       }
     },
@@ -4312,7 +4038,7 @@
     {
       "name": "email_sync_automation_step_props",
       "title": "syncAutomationStepProps",
-      "description": "Bulk-set props_overrides across many SEND steps in one call, addressed by position — the write side of a content pipeline that generates per-edition props (e.g. an 80-week drip). merge=false (default) replaces each step's overrides; merge=true shallow-merges. Validates all positions first (must exist + be send steps); while active, refuses positions any in-flight run has reached (pause to edit those). Non-send positions are rejected.",
+      "description": "Bulk-set props_overrides across many SEND steps in one call, addressed by position — the write side of a content pipeline that generates per-edition props (e.g. an 80-week automation, one send a week). merge=false (default) replaces each step's overrides; merge=true shallow-merges. Validates all positions first (must exist + be send steps); while active, refuses positions any in-flight run has reached (pause to edit those). Non-send positions are rejected.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -4370,7 +4096,7 @@
     {
       "name": "email_test_webhook_endpoint",
       "title": "testWebhookEndpoint",
-      "description": "Queue a synthetic `webhook.test` delivery so the operator can confirm signature verification works before real mail flows. The endpoint must be subscribed to `webhook.test`.",
+      "description": "Queue a synthetic `webhook.test` delivery so the operator can confirm signature verification works before real mail goes out. The endpoint must be subscribed to `webhook.test`.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -4552,7 +4278,7 @@
             "type": "boolean"
           },
           "reenrollmentCooldownSeconds": {
-            "description": "Minimum seconds before the same contact can re-enter (0 = none). The middle ground between re-entering every time and never again — note that \"never\" also counts CANCELED runs, so a flow exiting on conversion would otherwise burn out every contact who converts once. Ignored when allowReenrollment is false.",
+            "description": "Minimum seconds before the same contact can re-enter (0 = none). The middle ground between re-entering every time and never again — note that \"never\" also counts CANCELED runs, so an automation exiting on conversion would otherwise burn out every contact who converts once. Ignored when allowReenrollment is false.",
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991
@@ -5219,7 +4945,7 @@
     {
       "name": "email_update_template",
       "title": "updateTemplate",
-      "description": "Create a NEW draft version of a template (published versions are immutable). Omitted fields carry over from the latest version. Also updates template metadata (name/category/sender) when given.",
+      "description": "Create a NEW draft version of a template (published versions are immutable). Omitted fields carry over from the latest version. `name` and `category` are NOT versioned: they change the template in place, immediately, for every live send — switching category changes whether an unsubscribe blocks those sends. Confirm a category change with the user first.",
       "destructive": true,
       "acceptsProjectId": true,
       "inputSchema": {
@@ -5295,6 +5021,55 @@
             "minLength": 2,
             "maxLength": 35,
             "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$"
+          },
+          "projectId": {
+            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      }
+    },
+    {
+      "name": "email_update_template_meta",
+      "title": "updateTemplateMeta",
+      "description": "The 'just fix the subject' path — no new TSX. Subject and preview-text edits create a new version and are AUTO-PUBLISHED when the template is already published, so the change goes out on the next send (unlike updateTemplate, which leaves a draft). The sender updates in place. Confirm the new subject with the user first when the template is live.",
+      "destructive": true,
+      "acceptsProjectId": true,
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "previewText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "senderId": {
+            "description": "A sender id from listSenders; null reverts to the project default.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "projectId": {
             "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
@@ -5429,36 +5204,6 @@
         },
         "required": [
           "domain"
-        ]
-      }
-    },
-    {
-      "name": "email_verify_email_address",
-      "title": "verifyEmailAddress",
-      "description": "Verify ONE address against MillionVerifier now. Spends one credit from the shared pool. A hard `invalid` verdict also adds the address to this company's block list. Use for deliverability triage (\"is this address real?\"); pass `force` to re-check an address whose `invalid` verdict you believe is wrong. Bulk verification happens automatically on contact import — do not loop this tool over a list.",
-      "destructive": true,
-      "acceptsProjectId": true,
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-          },
-          "force": {
-            "type": "boolean"
-          },
-          "projectId": {
-            "description": "Target company (project id) — required on project-scoped tools. Call email_list_projects to enumerate companies.",
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "email"
         ]
       }
     }

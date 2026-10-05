@@ -2,7 +2,7 @@
 
 # Send & Retain — for agents
 
-Lifecycle email your agent runs — on your own Resend or SendGrid key.
+Email automation your agent runs — on your own Resend or SendGrid key.
 
 This repo is the machine-readable surface: an OpenAPI spec, a catalogue of
 every MCP tool, and the plugin. The product itself is closed-source and runs
@@ -20,7 +20,7 @@ A connected session is always workspace-scoped with write access.
 
     claude mcp add --transport http sendandretain https://sendandretain.com/api/mcp
 
-Tools are prefixed `email_`. All 101 of them are described in
+Tools are prefixed `email_`. All 92 of them are described in
 [`tools.json`](./tools.json) with full JSON Schema for every argument.
 
 **REST** (you are code) — keys are prefixed `aem_` and are a
@@ -65,7 +65,7 @@ the ads products. Sending is guarded structurally instead:
 delivery happens only through automations a human enabled.
 
 `tools.json` flags every tool that can cause an irreversible or outward-facing
-change as `destructive: true` — 60 of 101 here. Treat those as
+change as `destructive: true` — 58 of 92 here. Treat those as
 needing an explicit human instruction, not an inference.
 
 ## Files
